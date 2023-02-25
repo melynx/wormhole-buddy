@@ -1,8 +1,7 @@
 
 use reqwest::Url;
 use comfy_table::Table;
-use wormhole::{Vaa, vaa::Body};
-use wormhole::Chain;
+use wormhole::{Vaa};
 use serde_wormhole::RawMessage;
 
 use ethers::providers::{Middleware, Provider, Http};
@@ -40,11 +39,6 @@ pub fn get_query_url(chain: CooChain, emitter: EmitterType, sequence: u64, guard
 pub fn parse_vaa<'a> (vaa_bytes: &'a [u8]) -> Result<Vaa<&'a RawMessage>, CooError> {
     let vaa = serde_wormhole::from_slice(vaa_bytes)?;
     return Ok(vaa);
-}
-
-pub fn _augment_vaa<'a> (vaa: Vaa<&'a RawMessage>) -> Result<Body<&'a RawMessage>, CooError> {
-    let (head, body): (wormhole::vaa::Header, wormhole::vaa::Body<&'a RawMessage>) = vaa.into();
-    Ok(body)
 }
 
 pub fn decode_wormhole_token<'a> (vaa: &Vaa<&'a RawMessage>) -> Result<wormhole::token::Message, CooError> {
@@ -85,7 +79,7 @@ mod tests {
     #[test]
     fn test_query_guardian() {
         let guardian_url = Url::from_str(GUARDIAN_URL).unwrap();
-        let chain = CooChain::Inner(Chain::Avalanche);
+        let chain = CooChain::Inner(wormhole::Chain::Avalanche);
         let vaa_bytes = query_guardian(chain, EmitterType::TokenBridge, 1, guardian_url).unwrap();
         assert_eq!(vaa_bytes.len(), 1015);
     }
@@ -94,7 +88,7 @@ mod tests {
     #[test]
     fn test_get_query_url() {
         let guardian_url = Url::from_str(GUARDIAN_URL).unwrap();
-        let chain = CooChain::Inner(Chain::Avalanche);
+        let chain = CooChain::Inner(wormhole::Chain::Avalanche);
         let query_url = get_query_url(chain, EmitterType::TokenBridge, 1, guardian_url).unwrap();
         assert_eq!(query_url.to_string(), "https://wormhole-v2-mainnet-api.certus.one/v1/signed_vaa/6/0000000000000000000000000e082f06ff657d94310cb8ce8b0d9a04541d8052/1")
     }
