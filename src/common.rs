@@ -1,9 +1,10 @@
 use std::{collections::HashMap, fmt::Display};
 use base64::{Engine, engine::{general_purpose}};
 use clap::ValueEnum;
+use comfy_table::Table;
 use lazy_static::lazy_static;
 use serde_wormhole::RawMessage;
-use wormhole::Chain;
+use wormhole::{Chain, token::Message};
 
 pub const GUARDIAN_URL: &str = "https://wormhole-v2-mainnet-api.certus.one/";
 
@@ -99,14 +100,56 @@ impl Display for PayloadResponse {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             PayloadResponse::RawBytes(b) => write!(f, "{}", hex::encode(b)),
-            PayloadResponse::WormholeTokenTransfer(m) => write!(f, "{}", serde_json::to_string_pretty(m).unwrap()),
-            PayloadResponse::WormholeTokenTransferPayload(m) => write!(f, "{}", serde_json::to_string_pretty(m).unwrap()),
-            PayloadResponse::WormholeAssetMeta(m) => write!(f, "{}", serde_json::to_string_pretty(m).unwrap()),
+            PayloadResponse::WormholeTokenTransfer(m) |
+            PayloadResponse::WormholeTokenTransferPayload(m) |
+            PayloadResponse::WormholeAssetMeta(m) => {
+                let table = match m {
+                    Message::Transfer { amount, token_address, token_chain, recipient, recipient_chain, fee } => {
+                        let mut table = Table::new();
+                        table
+                            .set_header(["Payload"])
+                            .add_row(["Payload Type", "Wormhole Token Transfer"])
+                            .add_row(["Amount", &bytestohex(&amount.0)])
+                            .add_row(["Token Address", &bytestohex(&token_address.0)])
+                            .add_row(["Token Chain", &token_chain.to_string()])
+                            .add_row(["Recipient", &bytestohex(&recipient.0)])
+                            .add_row(["Recipient Chain", &recipient_chain.to_string()])
+                            .add_row(["Fee", &bytestohex(&fee.0)]);
+                        table
+                    },
+                    Message::AssetMeta { token_address, token_chain, name, symbol, decimals} => {
+                        let mut table = Table::new();
+                        table
+                            .set_header(["Payload"])
+                            .add_row(["Payload Type", "Wormhole Asset Meta"])
+                            .add_row(["Token Address", &bytestohex(&token_address.0)])
+                            .add_row(["Token Chain", &token_chain.to_string()])
+                            .add_row(["Name", &name.to_string()])
+                            .add_row(["Symbol", &symbol.to_string()])
+                            .add_row(["Decimals", &decimals.to_string()]);
+                        table
+                    },
+                    Message::TransferWithPayload { amount, token_address, token_chain, recipient, recipient_chain, sender_address, payload } => {
+                        let mut table = Table::new();
+                        table
+                            .set_header(["Payload"])
+                            .add_row(["Payload Type", "Wormhole Token Transfer with Payload"])
+                            .add_row(["Amount", &bytestohex(&amount.0)])
+                            .add_row(["Token Address", &bytestohex(&token_address.0)])
+                            .add_row(["Token Chain", &token_chain.to_string()])
+                            .add_row(["Recipient", &bytestohex(&recipient.0)])
+                            .add_row(["Recipient Chain", &recipient_chain.to_string()])
+                            .add_row(["Sender Address", &bytestohex(&sender_address.0)])
+                            .add_row(["Payload", &payload.to_string()]);
+                        table
+                    },
+                };
+                write!(f, "{}", table)
+            }
             PayloadResponse::WormholeNftTransfer(m) => write!(f, "{}", serde_json::to_string_pretty(m).unwrap()),
         }
     }
 }
-
 
 // wrapper chainid type such that we can implement FromStr
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -218,6 +261,19 @@ pub fn hextobytes(s: &str) -> Result<Vec<u8>, CooError> {
     };
     let s = hex::decode(s)?;
     Ok(s)
+}
+
+pub fn bytestohex(s: &[u8]) -> String {
+    // find the number of leading 0s
+    let mut leading_zeros = 0;
+    for i in 0..s.len() {
+        if s[i] == 0 {
+            leading_zeros += 1;
+        } else {
+            break;
+        }
+    }
+    format!("0x{}", hex::encode(&s[leading_zeros..]))
 }
 
 pub fn resolve_emitter_address(chain: CooChain, emitter: EmitterType) -> Result<String, CooError> {
