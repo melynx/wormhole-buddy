@@ -8,7 +8,7 @@ use lazy_static::lazy_static;
 mod common;
 mod vaa;
 
-use crate::common::{GUARDIAN_URL, EmitterType, CooChain, PayloadType, hextobytes, base58tobytes, base64tobytes, EMITTERS, PayloadResponse};
+use crate::common::{GUARDIAN_URL, EmitterType, CooChain, PayloadType, hextobytes, base58tobytes, base64tobytes, EMITTERS, PayloadResponse, resolve_emitter_address};
 use crate::vaa::{query_guardian, parse_vaa, pretty_vaa, decode_wormhole_token, decode_wormhole_nft};
 
 lazy_static! {
@@ -44,6 +44,8 @@ enum VaaCommand {
     Query(VaaQueryArgs),
     /// Decodes a VAA.
     Decode(VaaDecodeArgs),
+    /// List VAAs that have been queried.
+    List,
 }
 
 #[derive(Debug, Args)]
@@ -98,6 +100,9 @@ fn main() {
                 Some(VaaCommand::Decode(vaa_decode_args)) => {
                     cli_vaa_decode(vaa_decode_args, &app_path);
                 },
+                Some(VaaCommand::List) => {
+                    cli_vaa_list(&app_path);
+                },
                 None => {
                     println!("No VAA command specified");
                 }
@@ -117,6 +122,21 @@ fn create_config_dir(app_path: &Path) {
     std::fs::create_dir_all(&cache_path).unwrap();
 }
 
+fn cli_vaa_list(app_path: &Path) {
+    let cache_path = app_path.join("cache");
+    let vaa_files = std::fs::read_dir(&cache_path).unwrap();
+    let mut vaa_files: Vec<_> = vaa_files.map(|f| f.unwrap()).collect();
+    vaa_files.sort_by(|a, b| b.path().cmp(&a.path()));
+    for (index, vaa_file) in vaa_files.iter().enumerate() {
+        let vaa_filename = vaa_file.path().file_stem().unwrap().to_string_lossy().to_string();
+        let vaa_filename_parts: Vec<_> = vaa_filename.split("-").collect();
+        let chain_id = vaa_filename_parts[0].parse::<u16>().unwrap();
+        let emitter = vaa_filename_parts[1].to_string();
+        let sequence = vaa_filename_parts[2].parse::<u64>().unwrap();
+        println!("{: <3}: {} {} {}", index, chain_id, emitter, sequence);
+    }
+}
+
 fn cli_vaa_query(vaa_query_args: VaaQueryArgs, app_path: &Path) {
     let guardian_url = url::Url::from_str(&vaa_query_args.guardian_url_str).unwrap();
     let sequence = vaa_query_args.sequence;
@@ -125,7 +145,8 @@ fn cli_vaa_query(vaa_query_args: VaaQueryArgs, app_path: &Path) {
 
     let vaa_bytes = query_guardian(chain, emitter, sequence, guardian_url).unwrap();
     // save vaa_bytes to a file in cache
-    let vaa_filename = format!("{}-{}-{}.vaa", u16::from(chain), emitter, sequence);
+    let emitter_address = resolve_emitter_address(chain, emitter).unwrap();
+    let vaa_filename = format!("{}-{}-{}.vaa", u16::from(chain), emitter_address, sequence);
     let cache_path = app_path.join("cache").join(vaa_filename);
     let mut file = std::fs::File::create(&cache_path).unwrap();    
     file.write_all(&vaa_bytes).unwrap();
