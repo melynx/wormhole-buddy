@@ -9,7 +9,7 @@ mod common;
 mod vaa;
 
 use crate::common::{GUARDIAN_URL, EmitterType, CooChain, PayloadType, hextobytes, base58tobytes, base64tobytes, EMITTERS, PayloadResponse, resolve_emitter_address};
-use crate::vaa::{query_guardian, parse_vaa, pretty_vaa, decode_wormhole_token, decode_wormhole_nft};
+use crate::vaa::{query_guardian, parse_vaa, pretty_vaa, decode_wormhole_token, decode_wormhole_nft, pretty_nft_payload, pretty_token_payload};
 
 lazy_static! {
     static ref DEFAULT_APP_PATH: PathBuf = dirs::home_dir().unwrap().join(".coo");
@@ -257,5 +257,24 @@ fn cli_vaa_decode(vaa_decode_args: VaaDecodeArgs, app_path: &Path) {
             PayloadResponse::WormholeNftTransfer(message)
         },
     };
-    println!("{}", payload);
+
+    let display_string = match payload {
+        PayloadResponse::WormholeNftTransfer(message) => {
+            pretty_nft_payload(&message)
+        },
+        PayloadResponse::RawBytes(message) => {
+            format!("{:?}", message)
+        },
+        PayloadResponse::WormholeTokenTransfer(message) => {
+            pretty_token_payload(&message)
+        },
+        PayloadResponse::WormholeTokenTransferPayload(message) => {
+            pretty_token_payload(&message)
+        },
+        PayloadResponse::WormholeAssetMeta(message) => {
+            pretty_token_payload(&message)
+        },
+    };
+
+    println!("{}", display_string);
 }

@@ -1,10 +1,10 @@
 use std::{collections::HashMap, fmt::Display};
-use base64::{Engine, engine::{general_purpose}};
+use base64::{Engine, engine::general_purpose};
 use clap::ValueEnum;
 use comfy_table::Table;
 use lazy_static::lazy_static;
 use serde_wormhole::RawMessage;
-use wormhole::{Chain, token::Message};
+use wormhole::{Chain, token::Message, nft::TokenId};
 
 pub const GUARDIAN_URL: &str = "https://wormhole-v2-mainnet-api.certus.one/";
 
@@ -287,4 +287,12 @@ pub fn resolve_emitter_address(chain: CooChain, emitter: EmitterType) -> Result<
         },
         EmitterType::Address(a) => Ok(hex::encode(a)),
     }
+}
+
+pub fn tokenidtostring(tokenid: &TokenId) -> String {
+    bytestohex(&tokenid.0)
+}
+
+pub fn amounttostring(amount: &wormhole::Amount) -> String {
+    bytestohex(&amount.0)
 }

@@ -1,10 +1,10 @@
 
 use reqwest::Url;
-use comfy_table::Table;
-use wormhole::{Vaa};
+use comfy_table::{Table, Row};
+use wormhole::Vaa;
 use serde_wormhole::RawMessage;
 
-use ethers::providers::{Middleware, Provider, Http};
+// use ethers::providers::{Middleware, Provider, Http};
 
 use crate::common::*;
 
@@ -51,22 +51,91 @@ pub fn decode_wormhole_nft<'a> (vaa: &Vaa<&'a RawMessage>) -> Result<wormhole::n
     return Ok(message);
 }
 
+pub fn pretty_token_payload(payload: &wormhole::token::Message) -> String {
+    let mut table = Table::new();
+    table.set_header(["Wormhole Token Payload Information"]);
+    let rows:Vec<Row> = match payload {
+        wormhole::token::Message::Transfer { amount, token_address, token_chain, recipient, recipient_chain, fee } => {
+            vec![
+                ["Payload Type", "Transfer"].into(),
+                ["Amount", &amounttostring(amount)].into(),
+                ["Token Address (Origin)", &token_address.to_string()].into(),
+                ["Token Chain (Origin)", &token_chain.to_string()].into(),
+                ["Token Recipient", &recipient.to_string()].into(),
+                ["Token Recipient Chain", &recipient_chain.to_string()].into(),
+                ["Relayer Fees", &amounttostring(fee)].into(),
+            ]
+        },
+        wormhole::token::Message::AssetMeta { token_address, token_chain, decimals, symbol, name } => {
+            vec![
+                ["Payload Type", "AssetMeta"].into(),
+                ["Token Address (Origin)", &token_address.to_string()].into(),
+                ["Token Chain (Origin)", &token_chain.to_string()].into(),
+                ["Token Decimals", &decimals.to_string()].into(),
+                ["Token Symbol", &symbol.to_string()].into(),
+                ["Token Name", &name.to_string()].into(),
+            ]
+
+        },
+        wormhole::token::Message::TransferWithPayload { amount, token_address, token_chain, recipient, recipient_chain, sender_address, payload } => {
+            vec![
+                ["Payload Type", "TransferWithPayload"].into(),
+                ["Amount", &amounttostring(amount)].into(),
+                ["Token Address (Origin)", &token_address.to_string()].into(),
+                ["Token Chain (Origin)", &token_chain.to_string()].into(),
+                ["Token Recipient", &recipient.to_string()].into(),
+                ["Token Recipient Chain", &recipient_chain.to_string()].into(),
+                ["Sender Address", &sender_address.to_string()].into(),
+                ["Payload", &payload.to_string()].into(),
+            ]
+        },
+    };
+    table.add_rows(rows);
+    return format!("{table}");
+}
+
+
+pub fn pretty_nft_payload(payload: &wormhole::nft::Message) -> String {
+    let mut table = Table::new();
+    table.set_header(["Wormhole NFT Payload Information"]);
+    let rows: Vec<Row> = match payload {
+        wormhole::nft::Message::Transfer { nft_address, nft_chain, symbol, name, token_id, uri, to, to_chain } => {
+            vec![
+                ["Payload Type", "Transfer"].into(),
+                ["NFT Address (Origin)", &nft_address.to_string()].into(),
+                ["NFT Chain (Origin)", &nft_chain.to_string()].into(),
+                ["NFT Symbol", &symbol.to_string()].into(),
+                ["NFT Name", &name.to_string()].into(),
+                ["Token ID", &tokenidtostring(&token_id)].into(),
+                ["URI", &uri.to_string()].into(),
+                ["Destination Address", &to.to_string()].into(),
+                ["Destination Chain", &to_chain.to_string()].into(),
+            ]
+        }
+    };
+    table.add_rows(rows);
+    return format!("{table}");
+}
+
 pub fn pretty_vaa<T>(vaa: &Vaa<T>) -> String {
     let multiline_signatures = vaa.signatures.iter().map(
         |s| format!("{: <2}: {}", s.index, hex::encode(s.signature))
     ).collect::<Vec<String>>().join("\n");
     let mut table = Table::new();
-    table
-        .set_header(["VAA Information"])
-        .add_row(["Version", &vaa.version.to_string()])
-        .add_row(["Timestamp", &vaa.timestamp.to_string()])
-        .add_row(["Nonce", &vaa.nonce.to_string()])
-        .add_row(["Emitter Chain", &vaa.emitter_chain.to_string()])
-        .add_row(["Emitter Address", &vaa.emitter_address.to_string()])
-        .add_row(["Sequence", &vaa.sequence.to_string()])
-        .add_row(["Consistency Level", &vaa.consistency_level.to_string()])
-        .add_row(["Guardian Set", &vaa.guardian_set_index.to_string()])
-        .add_row(["Signatures", &multiline_signatures]);
+    table.set_header(["VAA Information"]);
+    let rows:Vec<Row> = vec![
+        ["Version", &vaa.version.to_string()].into(),
+        ["Timestamp", &vaa.timestamp.to_string()].into(),
+        ["Nonce", &vaa.nonce.to_string()].into(),
+        ["Emitter Chain", &vaa.emitter_chain.to_string()].into(),
+        ["Emitter Address", &vaa.emitter_address.to_string()].into(),
+        ["Sequence", &vaa.sequence.to_string()].into(),
+        ["Consistency Level", &vaa.consistency_level.to_string()].into(),
+        ["Guardian Set", &vaa.guardian_set_index.to_string()].into(),
+        ["Signatures", &multiline_signatures].into(),
+    ];
+    table.add_rows(rows);
+
     return format!("{table}");
 }
 
