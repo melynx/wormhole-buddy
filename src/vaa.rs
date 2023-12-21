@@ -1,7 +1,7 @@
 
 use reqwest::Url;
 use comfy_table::{Table, Row};
-use wormhole::Vaa;
+use wormhole_sdk::Vaa;
 use serde_wormhole::RawMessage;
 
 // use ethers::providers::{Middleware, Provider, Http};
@@ -41,21 +41,21 @@ pub fn parse_vaa<'a> (vaa_bytes: &'a [u8]) -> Result<Vaa<&'a RawMessage>, CooErr
     return Ok(vaa);
 }
 
-pub fn decode_wormhole_token<'a> (vaa: &Vaa<&'a RawMessage>) -> Result<wormhole::token::Message, CooError> {
-    let message: wormhole::token::Message = serde_wormhole::from_slice(vaa.payload).unwrap();
+pub fn decode_wormhole_token<'a> (vaa: &Vaa<&'a RawMessage>) -> Result<wormhole_sdk::token::Message, CooError> {
+    let message: wormhole_sdk::token::Message = serde_wormhole::from_slice(vaa.payload).unwrap();
     return Ok(message);
 }
 
-pub fn decode_wormhole_nft<'a> (vaa: &Vaa<&'a RawMessage>) -> Result<wormhole::nft::Message, CooError> {
-    let message: wormhole::nft::Message = serde_wormhole::from_slice(vaa.payload).unwrap();
+pub fn decode_wormhole_nft<'a> (vaa: &Vaa<&'a RawMessage>) -> Result<wormhole_sdk::nft::Message, CooError> {
+    let message: wormhole_sdk::nft::Message = serde_wormhole::from_slice(vaa.payload).unwrap();
     return Ok(message);
 }
 
-pub fn pretty_token_payload(payload: &wormhole::token::Message) -> String {
+pub fn pretty_token_payload(payload: &wormhole_sdk::token::Message) -> String {
     let mut table = Table::new();
     table.set_header(["Wormhole Token Payload Information"]);
     let rows:Vec<Row> = match payload {
-        wormhole::token::Message::Transfer { amount, token_address, token_chain, recipient, recipient_chain, fee } => {
+        wormhole_sdk::token::Message::Transfer { amount, token_address, token_chain, recipient, recipient_chain, fee } => {
             vec![
                 ["Payload Type", "Transfer"].into(),
                 ["Amount", &amounttostring(amount)].into(),
@@ -66,7 +66,7 @@ pub fn pretty_token_payload(payload: &wormhole::token::Message) -> String {
                 ["Relayer Fees", &amounttostring(fee)].into(),
             ]
         },
-        wormhole::token::Message::AssetMeta { token_address, token_chain, decimals, symbol, name } => {
+        wormhole_sdk::token::Message::AssetMeta { token_address, token_chain, decimals, symbol, name } => {
             vec![
                 ["Payload Type", "AssetMeta"].into(),
                 ["Token Address (Origin)", &token_address.to_string()].into(),
@@ -77,7 +77,7 @@ pub fn pretty_token_payload(payload: &wormhole::token::Message) -> String {
             ]
 
         },
-        wormhole::token::Message::TransferWithPayload { amount, token_address, token_chain, recipient, recipient_chain, sender_address, payload } => {
+        wormhole_sdk::token::Message::TransferWithPayload { amount, token_address, token_chain, recipient, recipient_chain, sender_address, payload } => {
             vec![
                 ["Payload Type", "TransferWithPayload"].into(),
                 ["Amount", &amounttostring(amount)].into(),
@@ -95,11 +95,11 @@ pub fn pretty_token_payload(payload: &wormhole::token::Message) -> String {
 }
 
 
-pub fn pretty_nft_payload(payload: &wormhole::nft::Message) -> String {
+pub fn pretty_nft_payload(payload: &wormhole_sdk::nft::Message) -> String {
     let mut table = Table::new();
     table.set_header(["Wormhole NFT Payload Information"]);
     let rows: Vec<Row> = match payload {
-        wormhole::nft::Message::Transfer { nft_address, nft_chain, symbol, name, token_id, uri, to, to_chain } => {
+        wormhole_sdk::nft::Message::Transfer { nft_address, nft_chain, symbol, name, token_id, uri, to, to_chain } => {
             vec![
                 ["Payload Type", "Transfer"].into(),
                 ["NFT Address (Origin)", &nft_address.to_string()].into(),
@@ -148,7 +148,7 @@ mod tests {
     #[test]
     fn test_query_guardian() {
         let guardian_url = Url::from_str(GUARDIAN_URL).unwrap();
-        let chain = CooChain::Inner(wormhole::Chain::Avalanche);
+        let chain = CooChain::Inner(wormhole_sdk::Chain::Avalanche);
         let vaa_bytes = query_guardian(chain, EmitterType::TokenBridge, 1, guardian_url).unwrap();
         assert_eq!(vaa_bytes.len(), 1015);
     }
@@ -157,7 +157,7 @@ mod tests {
     #[test]
     fn test_get_query_url() {
         let guardian_url = Url::from_str(GUARDIAN_URL).unwrap();
-        let chain = CooChain::Inner(wormhole::Chain::Avalanche);
+        let chain = CooChain::Inner(wormhole_sdk::Chain::Avalanche);
         let query_url = get_query_url(chain, EmitterType::TokenBridge, 1, guardian_url).unwrap();
         assert_eq!(query_url.to_string(), "https://wormhole-v2-mainnet-api.certus.one/v1/signed_vaa/6/0000000000000000000000000e082f06ff657d94310cb8ce8b0d9a04541d8052/1")
     }

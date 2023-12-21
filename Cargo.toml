@@ -21,7 +21,7 @@ lazy_static    = { version = "1.4.0" }
 ethers         = { version = "1.0.2" }
 dirs           = { version = "4.0.0" }
 
-wormhole-core  = { path = "./wormhole/sdk/rust/core" }
+wormhole-sdk  = { path = "./wormhole/sdk/rust/core" }
 serde_wormhole = { path = "./wormhole/sdk/rust/serde_wormhole" }
 
 [patch.crates-io]
